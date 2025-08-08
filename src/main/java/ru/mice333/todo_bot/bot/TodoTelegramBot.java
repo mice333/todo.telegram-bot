@@ -64,7 +64,15 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
                         if (!status.equals("да") && !status.equals("нет")) {
                             sendMessage(chatId, "Такого статуса у задач не может быть. Попробуйте выполнить команду снова указав _\"да\"_ или _\"нет\"_");
                         } else {
-                            allTasks = ApiRequest.showAllTasksFilteredByStatus(username, status.equals("да") ? true : false);
+                            allTasks = ApiRequest.showAllTasksFilteredByStatus(username, status.equals("да"));
+                            if (allTasks == null) {
+                                if (status.equals("да")) {
+                                    sendMessage(chatId, "Может пора выполнить хотя бы одну задачу?");
+                                    break;
+                                }
+                                sendMessage(chatId, "Ого, ты выполнил все задачи");
+                                break;
+                            }
                             sendMessage(chatId, normalizeListTasks(allTasks));
                         }
                         break;

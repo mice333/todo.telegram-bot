@@ -81,7 +81,7 @@ public class ApiRequest {
     }
 
     public static List<Task> showAllTasksSortedByPriority(String username) throws URISyntaxException, IOException, InterruptedException {
-        String TODO_API = "http://localhost:8080/tasks";
+        String TODO_API = BASE_URL + "tasks/sort/priority?username=" + username;
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder().uri(new URI(TODO_API)).GET().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -100,7 +100,7 @@ public class ApiRequest {
     }
 
     public static List<Task> showAllTasksSortedByDate(String username) throws URISyntaxException, IOException, InterruptedException {
-        String TODO_API = BASE_URL + "tasks/filter/date";
+        String TODO_API = BASE_URL + "tasks/sort/date?username=" + username;
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder().uri(new URI(TODO_API)).GET().build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());

@@ -23,7 +23,7 @@ import java.util.List;
 @Slf4j
 public class ApiRequest {
 
-    static String BASE_URL = "http://localhost:8080/api/";
+    private static String BASE_URL = "http://api:8080/";
 
     public static void createTask(String username, Task task) throws URISyntaxException, IOException, InterruptedException {
         String TODO_API = BASE_URL + "tasks/create?username=" + username;
@@ -124,7 +124,6 @@ public class ApiRequest {
         for (JsonElement elements : events) {
             JsonObject event = elements.getAsJsonObject();
             System.out.println(event);
-            String action;
             String title = event.get("title").getAsString();
             log.info("title: {}", title);
             String description = event.get("description").getAsString();

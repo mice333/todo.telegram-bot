@@ -7,6 +7,7 @@ import lombok.ToString;
 @ToString
 public class Task {
 
+    private Long id;
     private String title;
     private String description;
     private String priority;
@@ -14,7 +15,8 @@ public class Task {
     private String username;
     private String completed;
 
-    public Task(String title, String description, String priority, String createdAt, String username, String completed) {
+    public Task(Long id, String title, String description, String priority, String createdAt, String username, String completed) {
+        this.id= id;
         this.title = title;
         this.description = description;
         this.priority = priority;

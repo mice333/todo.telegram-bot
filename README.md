@@ -8,7 +8,7 @@
 
 # Tech Stack
 
-![My Skills](https://skillicons.dev/icons?i=java,spring,docker&theme=light)
+![My Skills](https://skillicons.dev/icons?i=java,spring,docker,redis&theme=light)
 
 ## TODO
 

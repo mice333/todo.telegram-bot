@@ -17,6 +17,7 @@ import ru.mice333.todo_bot.api.ApiRequest;
 import ru.mice333.todo_bot.api.ImageGeneratorApi;
 import ru.mice333.todo_bot.model.Task;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -58,13 +59,25 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
                 Task task = ApiRequest.findTaskById(Long.parseLong(call));
                 log.info("task id: {}", task.getId());
                 String img = ImageGeneratorApi.getImageLink(task.getId());
-                sendMessagePhoto(chatId, String.format("*Название*: %s\n_Описание_: %s\n_Приоритет_: %s\n_Дата создания_: %s\n%s\n\n==========\n\n",
-                        task.getTitle(),
-                        task.getDescription(),
-                        task.getPriority(),
-                        task.getCreatedAt(),
-                        task.getCompleted()
-                ), img);
+                try {
+                    sendMessagePhoto(chatId, String.format("*Название*: %s\n_Описание_: %s\n_Приоритет_: %s\n_Дата создания_: %s\n%s\n\n==========\n\n",
+                            task.getTitle(),
+                            task.getDescription(),
+                            task.getPriority(),
+                            task.getCreatedAt(),
+                            task.getCompleted()
+                    ), img);
+                } catch (FileNotFoundException e) {
+                    img = "https://i.pinimg.com/736x/e4/6d/87/e46d873dc5389bd3f76102c0cd9df176.jpg";
+                    sendMessagePhoto(chatId, String.format("*Название*: %s\n_Описание_: %s\n_Приоритет_: %s\n_Дата создания_: %s\n%s\n\n==========\n\n",
+                            task.getTitle(),
+                            task.getDescription(),
+                            task.getPriority(),
+                            task.getCreatedAt(),
+                            task.getCompleted()
+                    ), img);
+                }
+
                 return;
             }
 

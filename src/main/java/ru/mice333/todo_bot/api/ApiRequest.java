@@ -12,6 +12,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.springframework.stereotype.Service;
 import ru.mice333.todo_bot.model.Task;
 
 import java.io.IOException;
@@ -20,9 +21,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
+@Service
 public class ApiRequest {
 
-    private static String BASE_URL = "http://localhost:8080/";
+    private static String BASE_URL = "http://api:8080/";
 
     public static void createTask(String username, Task task) throws URISyntaxException, IOException, InterruptedException {
         String TODO_API = BASE_URL + "tasks/create?username=" + username;
@@ -31,18 +33,18 @@ public class ApiRequest {
         String json = String.format( "{" +
                 "\"title\":\"%s\"," +
                 "\"description\":\"%s\"," +
-                "\"priority\":%d" +
-                "}", task.getTitle(), task.getDescription(), Integer.parseInt(task.getPriority()));
+                "\"priority\":\"%s\"" +
+                "}", task.getTitle(), task.getDescription(), task.getPriority());
         log.info(task.toString());
         post.addHeader("Content-Type", "application/json");
         StringEntity body = new StringEntity(json, "UTF-8");
         post.setEntity(body);
 
-
+        log.info("{}", Thread.currentThread().getName());
 
         HttpResponse httpResponse = client.execute(post);
         task.setId(Long.parseLong(EntityUtils.toString(httpResponse.getEntity())));
-        ImageGeneratorApi.createImage(task);
+        ImageGeneratorApi.createImageAsync(task);
 
     }
 

@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -14,11 +16,12 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.mice333.todo_bot.api.ApiRequest;
 import ru.mice333.todo_bot.api.ImageGeneratorApi;
-import ru.mice333.todo_bot.model.Message;
 import ru.mice333.todo_bot.model.Task;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,11 +50,28 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
                 call = update.getCallbackQuery().getData();
                 username = update.getCallbackQuery().getFrom().getUserName();
                 chatId = update.getCallbackQuery().getMessage().getChatId().toString();
-
+                if (call.contains("complete")) {
+                    ApiRequest.updateCompleteStatus(Long.parseLong(call.substring(8)), username);
+                    log.info("У задачи с id: {} изменён статус", call.substring(8));
+                    DeleteMessage deleteMessage = new DeleteMessage(chatId, update.getCallbackQuery().getMessage().getMessageId());
+                    try {
+                        execute(deleteMessage);
+                    } catch (TelegramApiException e) {
+                        log.error(e.getMessage());
+                    }
+                    return;
+                }
 
                 if (call.contains("delete")) {
                     ApiRequest.deleteTaskById(Long.parseLong(call.substring(6)), username);
                     log.info("Задача с id: {} удалена", call.substring(6));
+                    DeleteMessage deleteMessage = new DeleteMessage(chatId, update.getCallbackQuery().getMessage().getMessageId());
+                    try {
+                        execute(deleteMessage);
+                    } catch (TelegramApiException e) {
+                        log.error(e.getMessage());
+                    }
+                    return;
                 }
                 Task task = ApiRequest.findTaskById(Long.parseLong(call));
                 log.info("task id: {}", task.getId());
@@ -64,6 +84,7 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
                             task.getCreatedAt(),
                             task.getCompleted()
                     ), img, task.getId());
+                    return;
                 } catch (FileNotFoundException e) {
                     img = "https://i.pinimg.com/736x/e4/6d/87/e46d873dc5389bd3f76102c0cd9df176.jpg";
                     sendMessagePhoto(chatId, String.format("*Название*: %s\n_Описание_: %s\n_Приоритет_: %s\n_Дата создания_: %s\n%s\n\n==========\n\n",
@@ -133,7 +154,7 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
                         }
 
 
-                        sendKeyboardMessage(chatId, normalizeListTasks(allTasks), allTasks);
+                        sendAllTasks(chatId, normalizeListTasks(allTasks), allTasks);
                     }
                 } else if (message.equals("/date")) {
                     log.info("Пользователь {} использовал команду \"/date\"", username);
@@ -154,7 +175,7 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
                             "/create - создание задачи\n/all [да|нет] - фильтрация задач выполнены/не выполнены\n/all - список всех задач\n/date - сортировка по дате\n/priority - сортировка по приоритету",
                             "https://i.pinimg.com/originals/e1/85/18/e18518c6d24257c6fb02e3c95a862d85.gif");
                 } else {
-                    sendMessageWithGif(chatId, "Такой команды не существует, но может я добавлю её позже :)\n\nможет..");
+                    sendMessageWithGif(chatId, "Такой команды не существует, но может я добавлю её позже :)\n\nможет..", null);
                 }
             }
         }
@@ -162,14 +183,34 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
     }
 
     public void sendMessagePhoto(String chatId, String text, String img, Long taskId) throws IOException {
+        InputStream stream = new URL(img).openStream();
+        SendPhoto sp = new SendPhoto();
+        sp.setChatId(chatId);
+        sp.setCaption(text);
+        sp.setParseMode("Markdown");
+        sp.setPhoto(new InputFile(stream, img));
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
+        List<InlineKeyboardButton> row1 = new ArrayList<>();
+        List<InlineKeyboardButton> row2 = new ArrayList<>();
+        row1.add(new InlineKeyboardButton("✅Выполнено", null, "complete" + taskId,
+                null,null,
+                null,null,null,null));
+        row2.add(new InlineKeyboardButton("❌Удалить", null, "delete" + taskId,
+                null,null,
+                null,null,null,null));
+        keyboard.add(row1);
+        keyboard.add(row2);
+        keyboardMarkup.setKeyboard(keyboard);
+        sp.setReplyMarkup(keyboardMarkup);
         try {
-            execute(Message.sendMessagePhoto(chatId, text, img, taskId));
+            execute(sp);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
     }
 
-    public void sendKeyboardMessage(String chatId, String text, List<Task> allTasks) {
+    public void sendAllTasks(String chatId, String text, List<Task> allTasks) {
         InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
         List<InlineKeyboardButton> row1 = new ArrayList<>();
@@ -205,21 +246,12 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
     }
 
     public void sendMessageWithGif(String chatId, String text, String gif) {
+        if (gif == null) {
+            gif = "https://i.pinimg.com/originals/70/84/c6/7084c682f10716fcaf0469b550a92b6a.gif";
+        }
         SendVideo sv = new SendVideo();
         sv.setChatId(chatId);
         sv.setVideo(new InputFile(gif));
-        sv.setCaption(text);
-        try {
-            execute(sv);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void sendMessageWithGif(String chatId, String text) {
-        SendVideo sv = new SendVideo();
-        sv.setChatId(chatId);
-        sv.setVideo(new InputFile("https://i.pinimg.com/originals/70/84/c6/7084c682f10716fcaf0469b550a92b6a.gif"));
         sv.setCaption(text);
         try {
             execute(sv);
@@ -234,17 +266,6 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
         sm.setText(text);
 
         sm.enableMarkdown(true);
-        try {
-            execute(sm);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
-    }
-    public void sendMessageV2(String chatId, String text) {
-        SendMessage sm = new SendMessage();
-        sm.setChatId(chatId);
-        sm.setText(text);
-        sm.enableMarkdownV2(true);
         try {
             execute(sm);
         } catch (TelegramApiException e) {

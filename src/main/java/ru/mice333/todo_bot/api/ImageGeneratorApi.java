@@ -30,7 +30,7 @@ public class ImageGeneratorApi {
     }
 
     @Async("threadPoolTaskExecutor")
-    public static CompletableFuture<Void> createImageAsync(Task task) throws URISyntaxException, IOException, InterruptedException {
+    public CompletableFuture<Void> createImageAsync(Task task) throws URISyntaxException, IOException, InterruptedException {
         log.info("Создание изображения");
         return CompletableFuture.runAsync(() -> {
             long time = System.currentTimeMillis();
@@ -73,7 +73,7 @@ public class ImageGeneratorApi {
         HttpGet get = new HttpGet(IMAGE_API);
         HttpResponse response = client.execute(get);
         log.info("Изображение взято с API");
-        log.info("{}", System.currentTimeMillis() - time);
+        log.info("Получение изображения закончено за: {}ms", System.currentTimeMillis() - time);
         return EntityUtils.toString(response.getEntity());
     }
 

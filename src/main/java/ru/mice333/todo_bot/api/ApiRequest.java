@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -24,6 +25,12 @@ import java.util.List;
 @Slf4j
 @Service
 public class ApiRequest {
+
+    private static ImageGeneratorApi imageGeneratorApi;
+
+    public ApiRequest(ImageGeneratorApi imageGeneratorApi) {
+        this.imageGeneratorApi = imageGeneratorApi;
+    }
 
     private static String BASE_URL = "http://api:8080/";
 
@@ -45,13 +52,12 @@ public class ApiRequest {
 
         HttpResponse httpResponse = client.execute(post);
         task.setId(Long.parseLong(EntityUtils.toString(httpResponse.getEntity())));
-        ImageGeneratorApi.createImageAsync(task);
-
+        imageGeneratorApi.createImageAsync(task);
     }
 
     public static List<Task> showAllTasks(String username) throws URISyntaxException, IOException, InterruptedException {
         String TODO_API = BASE_URL + "tasks?username=" + username;
-        log.info("{}", BASE_URL);
+        log.info("{}", TODO_API);
         CloseableHttpClient client = HttpClients.createDefault();
         HttpGet get = new HttpGet(TODO_API);
 
@@ -147,6 +153,13 @@ public class ApiRequest {
         task.setCreatedAt(jsonObject.get("createdAt").getAsString());
         task.setCompleted(jsonObject.get("completed").getAsBoolean() ? "✅" : "❌");
         return task;
+    }
+
+    public static void updateCompleteStatus(Long id, String username) throws IOException {
+        String TODO_API = BASE_URL + "tasks/task/" + id + "?username=" + username;
+        CloseableHttpClient client = HttpClients.createDefault();
+        HttpPatch patch = new HttpPatch(TODO_API);
+        client.execute(patch);
     }
 
     public static void deleteTaskById(Long id, String username) throws IOException {

@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -146,6 +147,13 @@ public class ApiRequest {
         task.setCreatedAt(jsonObject.get("createdAt").getAsString());
         task.setCompleted(jsonObject.get("completed").getAsBoolean() ? "✅" : "❌");
         return task;
+    }
+
+    public static void deleteTaskById(Long id, String username) throws IOException {
+        String TODO_API = BASE_URL + "tasks/task/" + id + "?username=" + username;
+        CloseableHttpClient client = HttpClients.createDefault();
+        HttpDelete delete = new HttpDelete(TODO_API);
+        client.execute(delete);
     }
 
 

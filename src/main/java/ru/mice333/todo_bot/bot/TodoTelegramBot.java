@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -15,12 +14,11 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.mice333.todo_bot.api.ApiRequest;
 import ru.mice333.todo_bot.api.ImageGeneratorApi;
+import ru.mice333.todo_bot.model.Message;
 import ru.mice333.todo_bot.model.Task;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,13 +47,12 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
                 call = update.getCallbackQuery().getData();
                 username = update.getCallbackQuery().getFrom().getUserName();
                 chatId = update.getCallbackQuery().getMessage().getChatId().toString();
-                /*
-                * call = 1
-                * findTaskById();
-                * call = 2;
-                *
-                *
-                * */
+
+
+                if (call.contains("delete")) {
+                    ApiRequest.deleteTaskById(Long.parseLong(call.substring(6)), username);
+                    log.info("Задача с id: {} удалена", call.substring(6));
+                }
                 Task task = ApiRequest.findTaskById(Long.parseLong(call));
                 log.info("task id: {}", task.getId());
                 String img = ImageGeneratorApi.getImageLink(task.getId());
@@ -66,7 +63,7 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
                             task.getPriority(),
                             task.getCreatedAt(),
                             task.getCompleted()
-                    ), img);
+                    ), img, task.getId());
                 } catch (FileNotFoundException e) {
                     img = "https://i.pinimg.com/736x/e4/6d/87/e46d873dc5389bd3f76102c0cd9df176.jpg";
                     sendMessagePhoto(chatId, String.format("*Название*: %s\n_Описание_: %s\n_Приоритет_: %s\n_Дата создания_: %s\n%s\n\n==========\n\n",
@@ -75,7 +72,7 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
                             task.getPriority(),
                             task.getCreatedAt(),
                             task.getCompleted()
-                    ), img);
+                    ), img, task.getId());
                 }
 
                 return;
@@ -164,15 +161,9 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
 
     }
 
-    public void sendMessagePhoto(String chatId, String text, String img) throws IOException {
-        InputStream stream = new URL(img).openStream();
-        SendPhoto sp = new SendPhoto();
-        sp.setChatId(chatId);
-        sp.setCaption(text);
-        sp.setParseMode("Markdown");
-        sp.setPhoto(new InputFile(stream, img));
+    public void sendMessagePhoto(String chatId, String text, String img, Long taskId) throws IOException {
         try {
-            execute(sp);
+            execute(Message.sendMessagePhoto(chatId, text, img, taskId));
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }

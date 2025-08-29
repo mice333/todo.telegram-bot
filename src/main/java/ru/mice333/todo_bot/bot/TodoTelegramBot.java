@@ -5,9 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.mice333.todo_bot.api.ApiRequest;
 import ru.mice333.todo_bot.api.ImageGeneratorApi;
 import ru.mice333.todo_bot.model.Task;
@@ -42,27 +40,19 @@ public class TodoTelegramBot extends TelegramLongPollingBot {
                 call = update.getCallbackQuery().getData();
                 username = update.getCallbackQuery().getFrom().getUserName();
                 chatId = update.getCallbackQuery().getMessage().getChatId().toString();
-                if (call.contains("complete")) {
+                if (call.equals("deleteAll")) {
+                    ApiRequest.deleteAllTasks(username);
+                    deleteMessage(this, chatId, update.getCallbackQuery().getMessage().getMessageId());
+                    return;
+                } else if (call.contains("complete")) {
                     ApiRequest.updateCompleteStatus(Long.parseLong(call.substring(8)), username);
                     log.info("У задачи с id: {} изменён статус", call.substring(8));
-                    DeleteMessage deleteMessage = new DeleteMessage(chatId, update.getCallbackQuery().getMessage().getMessageId());
-                    try {
-                        execute(deleteMessage);
-                    } catch (TelegramApiException e) {
-                        log.error(e.getMessage());
-                    }
+                    deleteMessage(this, chatId, update.getCallbackQuery().getMessage().getMessageId());
                     return;
-                }
-
-                if (call.contains("delete")) {
+                } else if (call.contains("delete")) {
                     ApiRequest.deleteTaskById(Long.parseLong(call.substring(6)), username);
                     log.info("Задача с id: {} удалена", call.substring(6));
-                    DeleteMessage deleteMessage = new DeleteMessage(chatId, update.getCallbackQuery().getMessage().getMessageId());
-                    try {
-                        execute(deleteMessage);
-                    } catch (TelegramApiException e) {
-                        log.error(e.getMessage());
-                    }
+                    deleteMessage(this, chatId, update.getCallbackQuery().getMessage().getMessageId());
                     return;
                 }
                 Task task = ApiRequest.findTaskById(Long.parseLong(call));

@@ -169,6 +169,13 @@ public class ApiRequest {
         client.execute(delete);
     }
 
+    public static void deleteAllTasks(String username) throws IOException {
+        String TODO_API = BASE_URL + "tasks/delete?username=" + username;
+        CloseableHttpClient client = HttpClients.createDefault();
+        HttpDelete patch = new HttpDelete(TODO_API);
+        client.execute(patch);
+    }
+
 
     private static List<Task> displayActivity(JsonArray events) {
         List<Task> allTasks = new ArrayList<>();

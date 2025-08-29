@@ -5,6 +5,7 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -70,8 +71,13 @@ public class MessageService {
             }
             counter++;
         }
+        List<InlineKeyboardButton> row3 = new ArrayList<>();
+        row3.add(new InlineKeyboardButton("❌Удалить все задачи", null,
+                "deleteAll",null,null,
+                null,null,null,null));
         keyboard.add(row1);
         keyboard.add(row2);
+        keyboard.add(row3);
         keyboardMarkup.setKeyboard(keyboard);
         SendMessage sm = new SendMessage();
         sm.setChatId(chatId);
@@ -108,6 +114,15 @@ public class MessageService {
         sm.enableMarkdown(true);
         try {
             bot.execute(sm);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void deleteMessage(TelegramLongPollingBot bot, String chatId, int messageId) {
+        DeleteMessage deleteMessage = new DeleteMessage(chatId, messageId);
+        try {
+            bot.execute(deleteMessage);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
